@@ -3,11 +3,15 @@ library(mobr)
 dat<-as_tibble(read.csv("data/Species_counts.csv"))
 summary(dat)
 str(dat)
+
+# exclude samples without individuals
+dat= dat[rowSums(select(dat, -c(1:4)))>0,]
+
 sites<-as_tibble(read.csv("data/sites.csv"))
 plot_attr<-merge(dat[,1:4], sites, by.x ="Site", by.y="Site.Code", all.x = T)
 table(plot_attr$Site==dat$Site)
 
-mob_in<-make_mob_in(comm=select(dat, -c(1:4)),
+mob_in<-make_mob_in(comm=dat[,-c(1:4)],
                     plot_attr = plot_attr,coord_names = c("E", "N"))
 
 stats<- get_mob_stats(mob_in,group_var = "Site")
