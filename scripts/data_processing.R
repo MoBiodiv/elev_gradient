@@ -31,7 +31,7 @@ site_dat <- merge(dat_All[ , c("Code", "Site", "Subplot", "Sample")],
 
 calc_coord <- function(x, y, subplot, sample) {
     for(i in seq_along(x)) {
-        if (subplot[i] == "A" | subplot[i] == "D")
+        if (subplot[i] == "A" | subplot[i] == "C")
             x[i] = x[i] - 20
         else 
             x[i] = x[i] + 20
@@ -39,7 +39,7 @@ calc_coord <- function(x, y, subplot, sample) {
             y[i] = y[i] + 20
         else
             y[i] = y[i] - 20
-        if (sample[i] == 1 | sample[i] == 4) 
+        if (sample[i] == 1 | sample[i] == 3) 
             x[i] = x[i] - 4.5
         else
             x[i] = x[i] + 4.5
