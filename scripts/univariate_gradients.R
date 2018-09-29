@@ -37,7 +37,7 @@ ggsave("gammas.pdf", path = "./figs")
 ## continuous analysis
 
 deltas = get_delta_stats(ant_mob_in, group_var = 'Elevation_m',
-                         type = 'continuous', n_perm = 999)    
+                         type = 'continuous', n_perm = 299)    
 
 save(deltas, file = './results/deltas.Rdata')
 
