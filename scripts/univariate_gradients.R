@@ -37,10 +37,22 @@ ggsave("gammas.pdf", path = "./figs")
 ## continuous analysis
 
 deltas = get_delta_stats(ant_mob_in, group_var = 'Elevation_m',
-                         type = 'continuous', n_perm = 299)    
+                         type = 'continuous', n_perm = 199)    
 
 save(deltas, file = './results/deltas.Rdata')
 
 pdf('./figs/deltas_b1.pdf')
 plot(deltas, stat = 'b1')
+dev.off()
+
+# drop the NODI site which only has 6 individuals
+ant_mob_in = subset(ant_mob_in, Site != 'NODI')
+
+deltas_noNODI = get_delta_stats(ant_mob_in, group_var = 'Elevation_m',
+                         type = 'continuous', n_perm = 199)    
+
+save(deltas_noNODI, file = './results/deltas_noNODI.Rdata')
+
+pdf('./figs/deltas_noNODI_b1.pdf')
+plot(deltas_noNODI, stat = 'b1')
 dev.off()
