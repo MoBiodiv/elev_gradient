@@ -13,26 +13,39 @@ stats <- get_mob_stats(ant_mob_in, group_var = "Site")
 plot(stats)
 
 alphas <- stats$samples_stats
-alphas$Elevation <- ant_plot_attr$Elevation_m[match(alphas$group, plot_attr$Site)]
+alphas$Elevation <- ant_plot_attr$Elevation_m[match(alphas$group, ant_plot_attr$Site)]
+
+#get Rsq values
+lm_alpha<-alphas  %>% split(alphas$index) %>% map(filter,abs(value) < 1000) %>%  map(function(x) lm(value~Elevation,data=x))
+Rsq_alpha<-lm_alpha %>% map_dbl(function(x)return(summary(x)$r.squared)) 
 
 alphas %>%
-  filter(abs(value) < 1000) %>% #some of the S_PIE blow up because of low numbers of individuals
-  ggplot(aes(Elevation, value) ) +
-    geom_point() +
-    geom_smooth(method = "lm") +
-    facet_wrap(. ~ index,scales = "free")
-ggsave("alphas.pdf", path = "./figs")
+  filter(abs(value) < 1000) %>%#some of the S_PIE blow up because of low numbers of individuals
+  ggplot(aes(x=Elevation, y=value)) +
+  geom_point(aes(col= group))+
+  geom_smooth(method="lm", se = F, col= "black")+
+  facet_wrap( . ~ index,scales = "free", labeller = labeller(index= function(x) {
+    rsq=round(Rsq_alpha[x],4)
+    return(paste(x,"; Rsq=",rsq, sep=""))}))
+ggsave("alphas.pdf", path = "./figs", width = 20,height = 20, units = "cm")
+
 
 gammas <- stats$groups_stats  
-gammas$Elevation <- ant_plot_attr$Elevation_m[match(gammas$group, plot_attr$Site)]
+gammas$Elevation <- ant_plot_attr$Elevation_m[match(gammas$group, ant_plot_attr$Site)]
+
+#get Rsq values
+lm_gamma<-gammas  %>% split(gammas$index) %>% map(filter,abs(value) < 1000) %>%  map(function(x) lm(value~Elevation,data=x))
+Rsq_gamma<-lm_gamma %>% map_dbl(function(x)return(summary(x)$r.squared)) 
 
 gammas %>%
   filter(abs(value) < 1000) %>%
   ggplot(aes(Elevation, value)) +
-    geom_point() +
-    geom_smooth(method="lm") +
-    facet_wrap( . ~ index,scales = "free")
-ggsave("gammas.pdf", path = "./figs")
+    geom_point(aes(col= group)) +
+    geom_smooth(method="lm", se= F, col= "black") +
+  facet_wrap( . ~ index,scales = "free", labeller = labeller(index= function(x) {
+    rsq=round(Rsq_gamma[x],4)
+    return(paste(x,"; Rsq=",rsq, sep=""))}))
+ggsave("gammas.pdf", path = "./figs", width = 20,height = 20, units = "cm")
 
 ## continuous analysis
 
