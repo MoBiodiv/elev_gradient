@@ -67,6 +67,17 @@ text(centroids[3, c('x', 'y')], labels = "C")
 text(centroids[4, c('x', 'y')], labels = "D")
 dev.off()
 
+# inspect distribution of spatial distances of the plot design
+dists<-dist(new_coords,method = "euclidean")
+par(mfrow=c(1,1))
+dist.distr<-as.data.frame(table(dists))
+dist.distr$dists<-as.character(dist.distr$dists)
+dist.distr$dists<-as.numeric(dist.distr$dists)
+plot(dist.distr)
+pdf('./figs/distance_distribution.pdf')
+plot(dist.distr)
+dev.off()
+
 coords <- with(site_dat, calc_coord(UTM_E, UTM_N, Subplot, Sample))
 site_dat <- cbind(site_dat, coords)
 row.names(site_dat) = site_dat$Code
