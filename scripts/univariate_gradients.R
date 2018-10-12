@@ -20,7 +20,6 @@ lm_alpha<-alphas  %>% split(alphas$index) %>% map(filter,abs(value) < 1000) %>% 
 Rsq_alpha<-lm_alpha %>% map_dbl(function(x)return(summary(x)$r.squared)) 
 
 alphas %>%
-  filter(abs(value) < 1000) %>%#some of the S_PIE blow up because of low numbers of individuals
   ggplot(aes(x=Elevation, y=value)) +
   geom_point(aes(col= group))+
   geom_smooth(method="lm", se = F, col= "black")+
