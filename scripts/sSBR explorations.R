@@ -18,3 +18,24 @@ mobr:::compare_curves(site)
 title(paste("Site",i, sep=" "))
 }
 dev.off()
+
+data("inv_comm")
+data("inv_plot_attr")
+
+inv_mob_in<- make_mob_in(inv_comm, inv_plot_attr)
+for(i in unique(inv_mob_in$env$group))  {
+  group<- subset(inv_mob_in,group ==i)
+mobr:::compare_curves(inv_mob_in)
+title(paste("group",i, sep=" "))
+}
+
+data("tank_comm")
+data("tank_plot_attr")
+tank_mob_in<- make_mob_in(tank_comm, tank_plot_attr)
+
+for(i in unique(tank_mob_in$env$group))  {
+  group<- subset(tank_mob_in,group ==i)
+  mobr:::compare_curves(tank_mob_in)
+  title(paste("group",i, sep=" "))
+}
+
