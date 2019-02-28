@@ -8,7 +8,7 @@ dat_All <- read_xlsx('./data/180926-AllRawData.xlsx',
                      sheet = 'All')
 dat_SItes <- read_xlsx('./data/180926-AllRawData.xlsx',
                      sheet = 'SItes')
-
+# note the following is only for a subset of sites in dat_SItes
 dat_Smokies <- read_xlsx('./data/SmokiesAbioticData.xlsx')
 
 
@@ -32,6 +32,9 @@ site_dat <- merge(dat_All[ , c("code", "site", "subplot", "sample")],
                  dat_SItes, by.x = "site", by.y = "site",
                  all.x = TRUE)
 site_dat <- merge(site_dat, dat_Smokies, all.x = TRUE)
+
+# remove incomplete redundant elevation variable
+site_dat <- subset(site_dat, select = -elevation)
 
 # compute new coordinates based upon sampling design---------
 # see ./figs/plot_design.pdf
