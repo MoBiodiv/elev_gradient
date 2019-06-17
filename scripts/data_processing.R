@@ -4,11 +4,15 @@ library(leaflet)
 library(mapview)
 
 
+# Note: the following two data files have data on 7 more sites than 
+# analyzed in Sanders et al. 2007 GEB
 dat_All <- read_xlsx('./data/180926-AllRawData.xlsx',
                      sheet = 'All')
 dat_SItes <- read_xlsx('./data/180926-AllRawData.xlsx',
                      sheet = 'SItes')
-# note the following is only for a subset of sites in dat_SItes
+
+# Note: the following enviornmental data is only from the 22 sites analyzed
+# in Sanders et al. 2007 GEB
 dat_Smokies <- read_xlsx('./data/SmokiesAbioticData.xlsx')
 
 
