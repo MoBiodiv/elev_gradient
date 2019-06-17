@@ -42,7 +42,6 @@ r2_alpha <- lm_alpha %>%
             map_dbl(function(x) summary(x)$r.squared) 
 
 alphas %>%
-  filter(abs(value) < 1000) %>% #some of the S_PIE blow up because of low numbers of individuals
   ggplot(aes(x = elevation, y = value)) +
   #geom_point(aes(col = group)) +
   geom_smooth(method = "lm", se = T, col = "black") +
