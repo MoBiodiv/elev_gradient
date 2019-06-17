@@ -1,6 +1,7 @@
 library(mobr)
 library(vegan)
 library(dplyr)
+library(tidyr)
 library(purrr)
 library(ggplot2)
 library(egg)
@@ -9,14 +10,45 @@ library(egg)
 ant_comm <- read.csv("data/comm_dat.csv", row.names = 1)
 ant_plot_attr <- read.csv("data/site_dat.csv", row.names = 1)
 
-# slightly change elev of RAMY b/c of delta_stats issue
-ant_plot_attr$elevation_m[ant_plot_attr$site == 'RAMY'] = 942
-
-ant_mob_in <- make_mob_in(ant_comm, ant_plot_attr)
+# quick and dirty fix so elev not exactly matching
+table(ant_plot_attr$elevation_m)
+which(ant_plot_attr$elevation_m == 941)
+ant_plot_attr$elevation_m[273:288] = 941.01
+    
+ant_mob_in <- make_mob_in(ant_comm, ant_plot_attr, coord_names = c('x', 'y'))
 
 ## compute mob stats-------------------
 
-plot(ant_plot_attr[ , c('elevation', 'log_npp', 'npp_g_c_m2', "mean_monthly_temperature", "ndvi_evi")])
+plot(ant_plot_attr[ , c('elevation_m', 'log_npp', 'npp_g_c_m2', "mean_monthly_temperature", "ndvi_evi")])
+
+a = aggregate(ant_comm, list(ant_plot_attr$site), sum)[ ,-1]
+Sa = rowSums(a> 0)
+Na = rowSums(a)
+ev = tapply(ant_plot_attr$elevation_m, list(ant_plot_attr$site), function(x) x[1])
+summary(lm(Na ~ ev))
+
+S = rowSums(ant_comm > 0)
+N = rowSums
+summary(lm(N ~ ant_plot_attr$elevation_m))
+summary(glm(N ~ ant_plot_attr$elevation_m, family = 'poisson'))
+pseudo_r2 = function(glm_mod) {
+    1 -  glm_mod$deviance / glm_mod$null.deviance
+}
+pseudo_r2(glm(Na ~ ant_plot_attr$elevation_m, family = 'poisson'))
+
+summary(lm(S ~ N))
+mod = lm(S ~ elevation_m + log_npp + ndvi_evi, data = ant_plot_attr)
+par(mfrow=c(1,2))
+termplot(mod, se = T, partial.resid = T)
+cor(ant_plot_attr$elevation_m, ant_plot_attr$npp_g_c_m2, use = "complete.obs")
+# [1] 0.3151249
+cor(S, ant_plot_attr$elevation_m)
+# [1] -0.558464
+Sg = rowSums((aggregate(ant_comm, by = list(as.character(ant_plot_attr$site)), sum)[ , -1] > 0))
+en = aggregate(ant_plot_attr, by = list(as.character(ant_plot_attr$site)), function(x) x[1])[, -1]
+cor(Sg, en$elevation_m)
+#[1] -0.7849327
+cor(Sg[!is.na(en$log_npp)], en$elevation_m[!is.na(en$log_npp)])
 
 stats <- get_mob_stats(ant_mob_in, group_var = "site")
 plot(stats)
@@ -67,6 +99,9 @@ lm_gamma <- gammas %>%
 r2_gamma <- lm_gamma %>%
             map_dbl(function(x) summary(x)$r.squared) 
 
+p_gamma <- lm_gamma %>%
+           map_dbl(function(x) summary(lm_gamma$N)$coeff[2,4])
+
 gammas %>%
   subset(abs(value) < 1000) %>% #some of the S_PIE blow up because of low numbers of individuals
   ggplot(aes(x = elevation, y = value)) +
@@ -84,15 +119,60 @@ ggsave("gammas.pdf", path = "./figs", width = 20, height = 20, units = "cm")
 
 mob_met = rbind(data.frame(scale = 'alpha', alphas),
                 data.frame(scale = 'gamma', gammas))
+mob_met$index = factor(mob_met$index, 
+                       levels = levels(mob_met$index)[c(2:1, 3:7)])
 
-mob_met %>%
-  subset(index == "N") %>% 
-  #subset(scale == "alpha") %>%
+N = with(mob_met, value[index == "N"]) 
+S = with(mob_met, value[index == "S"])
+scale = with(mob_met, scale[index == "N"])
+dat = data.frame(N, S, scale)
+
+gSN = dat %>%
+      ggplot(aes(x = N, y = S, col = scale)) + 
+      geom_point() +
+      geom_smooth(method = 'lm', se = T) + 
+      guides(colour='none')
+
+gSE = mob_met %>%
+      subset(index == "S") %>%
+      ggplot(aes(x = elevation, y = value, col = scale)) +
+      geom_point() +
+      labs(y = "S") + 
+      guides(colour='none')
+
+
+gNE = mob_met %>%
+      subset(index == "N" & scale == 'gamma') %>% 
+      ggplot(aes(x = elevation, y = value)) + 
+      geom_point() +
+      geom_smooth(method = 'lm', se = T) + 
+      labs(y = "N") + 
+      guides(colour='none')
+
+summary(lm(value ~ elevation, data = mob_met,
+           subset = scale == 'gamma' & index == 'N')) 
+
+
+gSnE = mob_met %>%
+       subset(index == "S_n") %>%
+       ggplot(aes(x = elevation, y = value, col = scale)) +
+       geom_point() +
+       geom_smooth(method = 'lm', se = T) + 
+       labs(y = expression(S[n]))
+    
+g = ggarrange(gSE, gNE, gSnE, nrow = 1)
+
+p1 = mob_met %>% 
+    subset(abs(value) < 1000) %>%
+    subset(index %in% c('S', 'N', 'S_n', 'S_PIE')) %>% 
     ggplot(aes(x = elevation, y = value, col = scale)) + 
     geom_point() +
-    geom_smooth(method = 'lm', se = T)
+    geom_smooth(method = 'lm', se = T) +
+    facet_wrap(. ~ index, scales = "free", nrow = 1)
 
-ggsave("N.pdf", path = "./figs", width = 12, height = 8, units = "cm")
+
+
+ggsave("N.pdf", plot = gNE, path = "./figs", width = 12, height = 8, units = "cm")
 
 p1 = mob_met %>% 
   subset(abs(value) < 1000) %>%
@@ -114,30 +194,113 @@ p2 = mob_met %>%
 g = ggarrange(p1, p2)
 ggsave("ENS.pdf", plot = g, path = "./figs", width = 20, height = 15, units = "cm")
 
-## continuous analysis ------------------
+# alpha, beta, gamma on the same 3 panels 
 
-deltas = get_delta_stats(ant_mob_in, group_var = 'elevation_m',
-                         type = 'continuous', n_perm = 199)    
+new_index = sub('beta_', '', mob_met$index) 
+new_scale = ifelse(grepl('beta_', mob_met$index),
+                   'beta',
+                   as.character(mob_met$scale))
+
+mob_met$index = new_index
+mob_met$scale = new_scale
+
+mob_met %>% 
+    subset(abs(value) < 1000) %>%
+    subset(index %in% c('S', 'S_n', 'S_PIE')) %>% 
+    ggplot(aes(x = elevation, y = value, col = scale)) + 
+    #geom_point() +
+    geom_smooth(method = 'lm', se = T) +
+    facet_wrap(. ~ index, scales = "fixed")  
+
+ggsave("div_grad.pdf", path = "./figs", width = 20, height = 8, units = "cm")
+
+
+
+
+## continuous analysis ------------------
+deltas = get_delta_stats(ant_mob_in, stat = 'r', 
+                         group_var = 'elevation_m',
+                         type = 'continuous', n_perm = 19)
+plot(deltas, 'r', scale_by = 'indiv')
+
 
 save(deltas, file = './results/deltas.Rdata')
 #load('./results/deltas.Rdata')
+deltas$group_var = 'elevation(m)'
 
 pdf('./figs/deltas_b1.pdf')
-plot(deltas, stat = 'b1', scale_by = 'indiv')
+plot(deltas, 'elevation_m', stat = 'b1', scale_by = 'indiv')
 dev.off()
 
 # drop the NODI site which only has 6 individuals
-ant_mob_in = subset(ant_mob_in, Site != 'NODI')
+ant_mob_in = subset(ant_mob_in, site != 'NODI', drop_levels = T)
 
 deltas_noNODI = get_delta_stats(ant_mob_in, group_var = 'elevation_m',
-                         type = 'continuous', n_perm = 199)    
+                                stat = c('betas', 'r'), type = 'continuous', n_perm = 49,
+                                overall_p = TRUE)    
 
 save(deltas_noNODI, file = './results/deltas_noNODI.Rdata')
 #load('./results/deltas_noNODI.Rdata')
 
 pdf('./figs/deltas_noNODI_b1.pdf')
-plot(deltas_noNODI, stat = 'b1', scale_by = 'indiv')
+plot(deltas_noNODI, stat = 'b1', scale_by = 'indiv',
+     eff_sub_effort = TRUE, eff_log_base = 2.8,
+     eff_disp_pts = T,
+     eff_disp_smooth = F)
 dev.off()
+
+pdf('./figs/deltas_noNODI_r.pdf')
+plot(deltas_noNODI, stat = 'r', scale_by = 'indiv',
+     eff_sub_effort = TRUE, eff_log_base = 2.8,
+     eff_disp_pts = T,
+     eff_disp_smooth = F)
+dev.off()
+
+# drop the next least populated site: DBSP & TRPA
+ant_mob_in = subset(ant_mob_in, site != 'DBSP' & site != 'TRPA',
+                    drop_levels = T)
+
+deltas_highN = get_delta_stats(ant_mob_in, group_var = 'site', env_var = 'elevation_m',
+                                type = 'continuous', n_perm = 19)    
+
+g = plot(deltas_highN, 'elevation_m', stat = 'b1', scale_by = 'indiv')
+ggsave('deltas_highN_b1.pdf', g, path = './figs', width = 20, height = 16,
+       units = 'cm' )
+
+# drop down to the 23 sites with more than 40 individuals
+sub = tapply(rowSums(ant_mob_in$comm), list(ant_mob_in$env$site), sum)
+sub = names(sub)[sub > 40]
+ant_mob_in = subset(ant_mob_in, site %in% sub, drop_levels = T)
+
+deltas_higherN = get_delta_stats(ant_mob_in, group_var = 'site', env_var = 'elevation_m',
+                               type = 'continuous', n_perm = 199,
+                               log_scale = T)
+
+save(deltas_higherN, file = './results/deltas_higherN.Rdata')
+#load('./results/deltas_higherN.Rdata')
+
+g = plot(deltas_higherN, 'elevation_m', stat = 'b1', scale_by = 'indiv')
+ggsave('deltas_higherN_b1.pdf', g, path = './figs', width = 20, height = 16,
+       units = 'cm' )
+
+
+# examine different explanatory variable npp
+ant_mob_in = subset(ant_mob_in, !is.na(npp_g_c_m2), drop_levels = T)
+
+deltas_npp = get_delta_stats(ant_mob_in, group_var = "site",
+                             env_var = "npp_g_c_m2",
+                             type = 'continuous', n_perm = 19, 
+                             inds = )
+
+deltas_lognpp = get_delta_stats(ant_mob_in, group_var = 'site', 
+                                env_var = "log_npp",
+                             type = 'continuous', n_perm = 199)
+
+save(deltas_lognpp, file = './results/deltas_lognpp.Rdata')
+#load('./results/deltas_lognpp.Rdata')
+
+plot(deltas_npp, "npp_g_c_m2", stat = 'b1', scale_by = 'indiv') 
+plot(deltas_lognpp, "log_npp", stat = 'b1', scale_by = 'indiv', log2 = 'x')
 
 ## analysis of composition change ------------
 
