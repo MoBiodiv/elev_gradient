@@ -5,256 +5,111 @@ library(tidyr)
 library(purrr)
 library(ggplot2)
 library(egg)
+library(pbapply)
+library(broom)
 
 # read in data files. 
 ant_comm <- read.csv("data/comm_dat.csv", row.names = 1)
 ant_plot_attr <- read.csv("data/site_dat.csv", row.names = 1)
 
-# quick and dirty fix so elev not exactly matching
-table(ant_plot_attr$elevation_m)
-which(ant_plot_attr$elevation_m == 941)
-ant_plot_attr$elevation_m[273:288] = 941.01
-    
 ant_mob_in <- make_mob_in(ant_comm, ant_plot_attr, coord_names = c('x', 'y'))
+
+# drop site with low number of individuals
+ant_mob_in = subset(ant_mob_in, site != 'NODI', drop_levels = T)
+
 
 ## compute mob stats-------------------
 
-plot(ant_plot_attr[ , c('elevation_m', 'log_npp', 'npp_g_c_m2', "mean_monthly_temperature", "ndvi_evi")])
+stats <- get_mob_stats(ant_mob_in, group_var = "site", 
+                       effort_samples = c(15, 80))
 
-a = aggregate(ant_comm, list(ant_plot_attr$site), sum)[ ,-1]
-Sa = rowSums(a> 0)
-Na = rowSums(a)
-ev = tapply(ant_plot_attr$elevation_m, list(ant_plot_attr$site), function(x) x[1])
-summary(lm(Na ~ ev))
-
-S = rowSums(ant_comm > 0)
-N = rowSums
-summary(lm(N ~ ant_plot_attr$elevation_m))
-summary(glm(N ~ ant_plot_attr$elevation_m, family = 'poisson'))
-pseudo_r2 = function(glm_mod) {
-    1 -  glm_mod$deviance / glm_mod$null.deviance
-}
-pseudo_r2(glm(Na ~ ant_plot_attr$elevation_m, family = 'poisson'))
-
-summary(lm(S ~ N))
-mod = lm(S ~ elevation_m + log_npp + ndvi_evi, data = ant_plot_attr)
-par(mfrow=c(1,2))
-termplot(mod, se = T, partial.resid = T)
-cor(ant_plot_attr$elevation_m, ant_plot_attr$npp_g_c_m2, use = "complete.obs")
-# [1] 0.3151249
-cor(S, ant_plot_attr$elevation_m)
-# [1] -0.558464
-Sg = rowSums((aggregate(ant_comm, by = list(as.character(ant_plot_attr$site)), sum)[ , -1] > 0))
-en = aggregate(ant_plot_attr, by = list(as.character(ant_plot_attr$site)), function(x) x[1])[, -1]
-cor(Sg, en$elevation_m)
-#[1] -0.7849327
-cor(Sg[!is.na(en$log_npp)], en$elevation_m[!is.na(en$log_npp)])
-
-stats <- get_mob_stats(ant_mob_in, group_var = "site")
 plot(stats)
 
 alphas <- stats$samples_stats
 alphas$elevation <- ant_plot_attr$elevation_m[match(alphas$group, ant_plot_attr$site)]
 
-S = rowSums(ant_comm > 0)
-full_mod = lm(S ~ elevation + log_npp + ndvi_evi, 
-              data = ant_plot_attr)
-red_mod = lm(S ~ elevation, data = ant_plot_attr)
-summary(full_mod)
-summary(red_mod)
-anova(full_mod, red_mod)
-
-#get Rsq values
-lm_alpha <- alphas  %>%
-            split(alphas$index) %>%
-            map(filter, abs(value) < 1000) %>%
-            map(function(x) lm(value ~ elevation, data = x))
-
-r2_alpha <- lm_alpha %>%
-            map_dbl(function(x) summary(x)$r.squared) 
-
-alphas %>%
-  ggplot(aes(x = elevation, y = value)) +
-  #geom_point(aes(col = group)) +
-  geom_smooth(method = "lm", se = T, col = "black") +
-  facet_wrap( . ~ index, scales = "free", 
-             labeller = labeller(
-               index = function(x) {
-                 r2 = round(r2_alpha[x], 2)
-                 return(paste(x, "; R2=", r2, sep = ""))
-               }))
-
-ggsave("alphas.pdf", path = "./figs", width = 20, height = 20, units = "cm")
-
-
 gammas <- stats$groups_stats  
 gammas$elevation <- ant_plot_attr$elevation_m[match(gammas$group, ant_plot_attr$site)]
 
-#get Rsq values
-lm_gamma <- gammas %>% 
-            split(gammas$index) %>%
-            map(filter, abs(value) < 1000) %>%
-            map(function(x) lm(value ~ elevation, data=x))
+# fit linear models
+lm_alpha = alphas %>% group_by(index, effort) %>%
+    do(mod = lm(value ~ elevation, data = .))
+lm_gamma = gammas %>% group_by(index, effort) %>%
+    do(mod = lm(value ~ elevation, data = .))
 
-r2_gamma <- lm_gamma %>%
-            map_dbl(function(x) summary(x)$r.squared) 
+# get model coefs
 
-p_gamma <- lm_gamma %>%
-           map_dbl(function(x) summary(lm_gamma$N)$coeff[2,4])
+mod_coef_alpha = broom::tidy(lm_alpha, mod)
+mod_coef_gamma = broom::tidy(lm_gamma, mod)
 
-gammas %>%
-  subset(abs(value) < 1000) %>% #some of the S_PIE blow up because of low numbers of individuals
-  ggplot(aes(x = elevation, y = value)) +
-  #geom_point(aes(col = group)) +
-  geom_smooth(method = "lm", se = T, col = "black") +
-  facet_wrap( . ~ index, scales = "free", 
-             labeller = labeller(
-               index = function(x) {
-                 r2 = round(r2_gamma[x], 2)
-                 return(paste(x, "; R2=", r2, sep = ""))
-               }))
-
-ggsave("gammas.pdf", path = "./figs", width = 20, height = 20, units = "cm")
-
+# get model summary
+mod_sum_alpha = broom::glance(lm_alpha, mod)
+mod_sum_gamma = broom::glance(lm_gamma, mod)
 
 mob_met = rbind(data.frame(scale = 'alpha', alphas),
                 data.frame(scale = 'gamma', gammas))
 mob_met$index = factor(mob_met$index, 
                        levels = levels(mob_met$index)[c(2:1, 3:7)])
 
-N = with(mob_met, value[index == "N"]) 
-S = with(mob_met, value[index == "S"])
-scale = with(mob_met, scale[index == "N"])
-dat = data.frame(N, S, scale)
-
-gSN = dat %>%
-      ggplot(aes(x = N, y = S, col = scale)) + 
-      geom_point() +
-      geom_smooth(method = 'lm', se = T) + 
-      guides(colour='none')
-
-gSE = mob_met %>%
-      subset(index == "S") %>%
-      ggplot(aes(x = elevation, y = value, col = scale)) +
-      geom_point() +
-      labs(y = "S") + 
-      guides(colour='none')
-
-
-gNE = mob_met %>%
-      subset(index == "N" & scale == 'gamma') %>% 
-      ggplot(aes(x = elevation, y = value)) + 
-      geom_point() +
-      geom_smooth(method = 'lm', se = T) + 
-      labs(y = "N") + 
-      guides(colour='none')
-
-summary(lm(value ~ elevation, data = mob_met,
-           subset = scale == 'gamma' & index == 'N')) 
-
-
-gSnE = mob_met %>%
-       subset(index == "S_n") %>%
-       ggplot(aes(x = elevation, y = value, col = scale)) +
-       geom_point() +
-       geom_smooth(method = 'lm', se = T) + 
-       labs(y = expression(S[n]))
-    
-g = ggarrange(gSE, gNE, gSnE, nrow = 1)
-
 p1 = mob_met %>% 
-    subset(abs(value) < 1000) %>%
-    subset(index %in% c('S', 'N', 'S_n', 'S_PIE')) %>% 
-    ggplot(aes(x = elevation, y = value, col = scale)) + 
-    geom_point() +
-    geom_smooth(method = 'lm', se = T) +
-    facet_wrap(. ~ index, scales = "free", nrow = 1)
+     subset(index %in% c('S', 'N')) %>%
+     subset(scale == 'alpha') %>%
+     ggplot(aes(x = elevation, y = value)) + 
+         geom_point() +
+         geom_smooth(method = 'lm', se = T) +
+         facet_wrap(~ index, scales = "free",  
+                    labeller = as_labeller(c(S = "Species richness (S)",
+                                             N = "Total abundance (N)"))) +
+         labs(x = "Elevation (m)")
 
 
-
-ggsave("N.pdf", plot = gNE, path = "./figs", width = 12, height = 8, units = "cm")
-
-p1 = mob_met %>% 
-  subset(abs(value) < 1000) %>%
-  subset(index %in% c('S', 'S_n', 'S_PIE')) %>% 
-  ggplot(aes(x = elevation, y = value, col = scale)) + 
-    geom_point() +
-    geom_smooth(method = 'lm', se = T) +
-    facet_wrap(. ~ index, scales = "free")
-
-
-p2 = mob_met %>% 
-    subset(abs(value) < 1000) %>%
-    subset(index %in% c('beta_S', 'beta_S_n', 'beta_S_PIE')) %>% 
-    ggplot(aes(x = elevation, y = value)) + 
-    geom_point() +
-    geom_smooth(method = 'lm', se = T) +
-    facet_wrap(. ~ index, scales = "free")
-
-g = ggarrange(p1, p2)
-ggsave("ENS.pdf", plot = g, path = "./figs", width = 20, height = 15, units = "cm")
-
-# alpha, beta, gamma on the same 3 panels 
-
-new_index = sub('beta_', '', mob_met$index) 
-new_scale = ifelse(grepl('beta_', mob_met$index),
-                   'beta',
-                   as.character(mob_met$scale))
-
-mob_met$index = new_index
-mob_met$scale = new_scale
-
-mob_met %>% 
-    subset(abs(value) < 1000) %>%
-    subset(index %in% c('S', 'S_n', 'S_PIE')) %>% 
-    ggplot(aes(x = elevation, y = value, col = scale)) + 
-    #geom_point() +
-    geom_smooth(method = 'lm', se = T) +
-    facet_wrap(. ~ index, scales = "fixed")  
-
-ggsave("div_grad.pdf", path = "./figs", width = 20, height = 8, units = "cm")
-
-
-
+ggsave('./figs/grad_vs_S&N.pdf', p1)
 
 ## continuous analysis ------------------
-deltas = get_delta_stats(ant_mob_in, stat = 'r', 
-                         group_var = 'elevation_m',
-                         type = 'continuous', n_perm = 19)
-plot(deltas, 'r', scale_by = 'indiv')
-
+deltas = get_delta_stats(ant_mob_in, env_var = 'elevation_m',
+                         group_var = 'site', stat = c('betas', 'r'),
+                         type = 'continuous', n_perm = 3)
 
 save(deltas, file = './results/deltas.Rdata')
 #load('./results/deltas.Rdata')
-deltas$group_var = 'elevation(m)'
 
-pdf('./figs/deltas_b1.pdf')
-plot(deltas, 'elevation_m', stat = 'b1', scale_by = 'indiv')
-dev.off()
+deltas$env_var = 'elevation(m)'
 
-# drop the NODI site which only has 6 individuals
-ant_mob_in = subset(ant_mob_in, site != 'NODI', drop_levels = T)
-
-deltas_noNODI = get_delta_stats(ant_mob_in, group_var = 'elevation_m',
-                                stat = c('betas', 'r'), type = 'continuous', n_perm = 49,
-                                overall_p = TRUE)    
-
-save(deltas_noNODI, file = './results/deltas_noNODI.Rdata')
-#load('./results/deltas_noNODI.Rdata')
-
+plot(deltas, 'b1')
 pdf('./figs/deltas_noNODI_b1.pdf')
-plot(deltas_noNODI, stat = 'b1', scale_by = 'indiv',
-     eff_sub_effort = TRUE, eff_log_base = 2.8,
-     eff_disp_pts = T,
-     eff_disp_smooth = F)
+plot(deltas, stat = 'b1', scale_by = 'indiv',
+     eff_sub_effort = F, eff_log_base = 2.8,
+     eff_disp_pts = F,
+     eff_disp_smooth = T)
 dev.off()
 
-pdf('./figs/deltas_noNODI_r.pdf')
+
+pdf('./figs/deltas_r.pdf')
 plot(deltas_noNODI, stat = 'r', scale_by = 'indiv',
      eff_sub_effort = TRUE, eff_log_base = 2.8,
      eff_disp_pts = T,
      eff_disp_smooth = F)
 dev.off()
+
+# drop common low elevation species Aphaenogaster rudis
+ant_mob_in$comm = subset(ant_mob_in$comm, select= -a_rudis)
+deltas = get_delta_stats(ant_mob_in, stat = c('betas', 'r'), 
+                         group_var = 'elevation_m',
+                         type = 'continuous', n_perm = 19)
+
+plot(deltas, stat = 'b1', scale_by = 'indiv',
+     eff_sub_effort = F, eff_log_base = 2.8,
+     eff_disp_pts = F,
+     eff_disp_smooth = T)
+
+# doesn't have an influence
+
+# drop crazy high abu sites
+24100 gamma  TRMT     N     NA  1046    462.00
+8100  gamma  GOPR     N     NA   900    941.00
+ant_mob_in = subset(ant_mob_in, site != "TRMT" & site != "GOPR")
+
+# not much of an influence either on aggregation
 
 # drop the next least populated site: DBSP & TRPA
 ant_mob_in = subset(ant_mob_in, site != 'DBSP' & site != 'TRPA',
