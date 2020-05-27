@@ -51,7 +51,18 @@ mob_met = rbind(data.frame(scale = 'alpha', alphas),
 mob_met$index = factor(mob_met$index, 
                        levels = levels(mob_met$index)[c(2:1, 3:7)])
 
-p1 = mob_met %>% 
+N1 = mob_met %>%
+     subset(index %in% 'N') %>%
+     ggplot(aes(x = elevation, y = value)) + 
+         geom_point(aes(color = scale)) +
+         geom_smooth(aes(color = scale), method = 'lm', se = F) +
+         labs(x = "Elevation (m)", y = "Total abundance (N)")
+ggsave("grad_vs_N.pdf", plot = N1, path = "./figs", width = 15, height = 12, 
+       units = "cm")
+
+       
+       
+SN1 = mob_met %>% 
      subset(index %in% c('S', 'N')) %>%
      subset(scale == 'alpha') %>%
      ggplot(aes(x = elevation, y = value)) + 
@@ -62,31 +73,55 @@ p1 = mob_met %>%
                                              N = "Total abundance (N)"))) +
          labs(x = "Elevation (m)")
 
+ggsave('./figs/grad_vs_S&N.pdf', SN1)
 
-ggsave('./figs/grad_vs_S&N.pdf', p1)
+
+p1 = mob_met %>% 
+  subset(abs(value) < 1000) %>%
+  subset(index %in% c('S', 'S_n', 'S_PIE')) %>% 
+  ggplot(aes(x = elevation, y = value, col = scale)) + 
+    geom_point() +
+    geom_smooth(method = 'lm', se = F) +
+    facet_wrap(. ~ index, scales = "free")
+
+
+p2 = mob_met %>% 
+    subset(abs(value) < 1000) %>%
+    subset(index %in% c('beta_S', 'beta_S_n', 'beta_S_PIE')) %>% 
+    ggplot(aes(x = elevation, y = value)) + 
+    geom_point() +
+    geom_smooth(method = 'lm', se = F) +
+    facet_wrap(. ~ index, scales = "free")
+
+g = ggarrange(p1, p2)
+ggsave("ENS.pdf", plot = g, path = "./figs", width = 20, height = 15, units = "cm")
+
 
 ## continuous analysis ------------------
+
 deltas = get_delta_stats(ant_mob_in, env_var = 'elevation_m',
                          group_var = 'site', stat = c('betas', 'r'),
-                         type = 'continuous', n_perm = 3)
+                         type = 'continuous', spat_algo = 'kNCN',
+                         n_perm = 19, overall_p = TRUE)
 
 save(deltas, file = './results/deltas.Rdata')
 #load('./results/deltas.Rdata')
 
-deltas$env_var = 'elevation(m)'
+deltas$env_var = 'elevation (m)'
 
-plot(deltas, 'b1')
+plot(deltas, stat = 'b1')
+
 pdf('./figs/deltas_noNODI_b1.pdf')
 plot(deltas, stat = 'b1', scale_by = 'indiv',
-     eff_sub_effort = F, eff_log_base = 2.8,
+     eff_sub_effort = F, eff_log_base = 2,
      eff_disp_pts = F,
      eff_disp_smooth = T)
 dev.off()
 
 
 pdf('./figs/deltas_r.pdf')
-plot(deltas_noNODI, stat = 'r', scale_by = 'indiv',
-     eff_sub_effort = TRUE, eff_log_base = 2.8,
+plot(deltas, stat = 'r', scale_by = 'indiv',
+     eff_sub_effort = T, eff_log_base = 2.8,
      eff_disp_pts = T,
      eff_disp_smooth = F)
 dev.off()
@@ -105,8 +140,8 @@ plot(deltas, stat = 'b1', scale_by = 'indiv',
 # doesn't have an influence
 
 # drop crazy high abu sites
-24100 gamma  TRMT     N     NA  1046    462.00
-8100  gamma  GOPR     N     NA   900    941.00
+#24100 gamma  TRMT     N     NA  1046    462.00
+#8100  gamma  GOPR     N     NA   900    941.00
 ant_mob_in = subset(ant_mob_in, site != "TRMT" & site != "GOPR")
 
 # not much of an influence either on aggregation
@@ -137,6 +172,19 @@ save(deltas_higherN, file = './results/deltas_higherN.Rdata')
 g = plot(deltas_higherN, 'elevation_m', stat = 'b1', scale_by = 'indiv')
 ggsave('deltas_higherN_b1.pdf', g, path = './figs', width = 20, height = 16,
        units = 'cm' )
+
+# exporation of centering effect size
+deltas$S_df <- deltas$S_df %>%
+    group_by(test, effort) %>%
+    mutate(effect = effect - mean(effect)) %>%
+    ungroup()
+
+deltas$S_df[deltas$S_df$test == 'SAD', ] <-
+    deltas$S_df %>%
+    subset(test == 'SAD') %>%
+    group_by(effort) %>%
+    mutate(effect = effect - mean(effect))
+
 
 
 # examine different explanatory variable npp
