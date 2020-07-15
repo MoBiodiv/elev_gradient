@@ -2,43 +2,48 @@ library(readxl)
 library(janitor)
 library(leaflet)
 library(mapview)
+library(tidyr)
 
+# Objective: 
+# to process the raw excel files provided by Nathan Sanders so that they can 
+# be analyzed and shared on Dryad data repository. 
 
 # Note: the following two data files have data on 7 more sites than 
 # analyzed in Sanders et al. 2007 GEB
-dat_All <- read_xlsx('./data/180926-AllRawData.xlsx',
+dat_comm <- read_xlsx('./data/180926-AllRawData.xlsx',
                      sheet = 'All')
-dat_SItes <- read_xlsx('./data/180926-AllRawData.xlsx',
+dat_sites <- read_xlsx('./data/180926-AllRawData.xlsx',
                      sheet = 'SItes')
+dat_splist <- read_xlsx('./data/smokies_species_list.xlsx')
 
-# Note: the following enviornmental data is only from the 22 sites analyzed
-# in Sanders et al. 2007 GEB
-dat_Smokies <- read_xlsx('./data/SmokiesAbioticData.xlsx')
+# fix species names in dat_comm
+sp_code <- dat_splist$sp_code[match(names(dat_comm)[-(1:4)], dat_splist$raw_name)]
+names(dat_comm) <- c(names(dat_comm)[1:4], sp_code)
 
+# clean and standardize column names 
+dat_comm <- clean_names(dat_comm)
+dat_sites <- clean_names(dat_sites)
 
-# fix column names 
-dat_All <- clean_names(dat_All)
-dat_SItes <- clean_names(dat_SItes)
-dat_Smokies <- clean_names(dat_Smokies)
+# rename site to site_name so that a conflict does not arise
+names(dat_sites)[1:2] <- c("site_name", "site")
 
-# rename Site to Site_Name so that a conflict does not arise
-names(dat_SItes)[1:2] <- c("site_name", "site")
+# fix site variable in dat_comm
+dat_comm$site <- ifelse(dat_comm$site == "CATALOOCHEE", "CATA",
+                       dat_comm$site)
 
-# fix Site variable in dat_All
-dat_All$site <- ifelse(dat_All$site == "CATALOOCHEE", "CATA",
-                       dat_All$site)
+# fix typo in field called code in which one row was recorded as being sampled
+# in 2007 (per email with Nathan Sanders)
+
+dat_comm$code[grep('LS07', dat_comm$code)] 
+dat_comm$code[grep('RAMY', dat_comm$code)] 
+# only the A2 sample is listed with the 07 designation so change that to 06
+dat_comm$code[grep('LS07', dat_comm$code)] <- "RAMYLS06A2"
 
 # remove species that never occurs, Pheidole bicarinata
-dat_All <- subset(dat_All, select = -pheidole_bicarinata)
+dat_comm <- subset(dat_comm, select = -pheibica)
 
-# merge subplot ids into site data
-site_dat <- merge(dat_All[ , c("code", "site", "subplot", "sample")],
-                 dat_SItes, by.x = "site", by.y = "site",
-                 all.x = TRUE)
-site_dat <- merge(site_dat, dat_Smokies, all.x = TRUE)
-
-# remove incomplete redundant elevation variable
-site_dat <- subset(site_dat, select = -elevation)
+# merge in env and coords from dat_sites
+dat_all <- merge(dat_comm, dat_sites)
 
 # compute new coordinates based upon sampling design---------
 # see ./figs/plot_design.pdf
@@ -95,11 +100,15 @@ pdf('./figs/distance_distribution.pdf')
 plot(dist.distr)
 dev.off()
 
-coords <- with(site_dat, calc_coord(utm_e, utm_n, subplot, sample))
-site_dat <- cbind(site_dat, coords)
-row.names(site_dat) = site_dat$code
+# compute spatial UTM coordinates of the samples
+sample_coords <- with(dat_all, calc_coord(utm_e, utm_n, subplot, sample))
+names(sample_coords) <- paste('sample_', names(sample_coords), sep='')
+dat_all <- cbind(dat_all, sample_coords)
 
-# explot coordinates on map ------------------
+# export cleaned merged data file for Dryad repository ---------------
+write.csv(dat_all, file='./data/dryad/smokies_all.csv', row.names=F)
+
+# plot site coordinates on map ------------------
 m <- leaflet(data = site_dat) %>% 
        addProviderTiles(providers$Esri.NatGeoWorldMap) %>%
        addMarkers(~e, ~n)
@@ -108,11 +117,3 @@ mapshot(m, file = paste0(getwd(), "/figs/sample_map.pdf"))
 # there appears to be considerable heterogenity in the aspect, slope,
 # and other topoedaphic features of these sites beyond just elevation
 
-# export cleaned site and comm data to file----------
-
-write.csv(site_dat, file = './data/site_dat.csv')
-
-dat_All = as.data.frame(dat_All)
-row.names(dat_All) = dat_All$code
-
-write.csv(dat_All[ , -(1:4)], file = './data/comm_dat.csv')

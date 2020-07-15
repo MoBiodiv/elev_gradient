@@ -1,0 +1,51 @@
+field,description
+site,four letter site code for a 50m x 50m quadrat
+code,"unique sample id that is a combination of the site code, sampling type (LS = leaf sifter), year (04 = 2004, 05 = 2005, 06 = 2006), subplot (A, B, C, or D), and sample number (1-4)"
+subplot,"a subplot code (A, B, C, or D) which designates which 10m x 10m corner of the 50 m x 50 m site the samples were collected from"
+sample,"the 1m x 1m sample number, four of which were collected in each subplot to make a total of 16 samples per site"
+stigpall,Stigmatomma pallipes
+apharudi,Aphaenogaster rudis
+aphacaro,Aphaenogaster carolinensis
+aphafulv,Aphaenogaster fulva
+bracdepi,Brachymyrmex depilis
+camppenn,Camponotus pennsylvanicus
+campamer,Camponotus americanus
+campchro,Camponotus chromaiodes
+campsubb,Camponotus subbarbatus
+campnear,Camponotus nearcticus
+cremminu,Crematogaster minutissima
+formsubs,Formica subsericea
+lasialie,Lasius alienus
+lasiumbr,Lasius umbratus
+monomini,Monomorium minimum
+monoamer,Monomorium americana
+myrmlati,Myrmica latifrons
+myrmpine,Myrmica pinetorum
+myrmpunc,Myrmica punctiventris
+myrmspat,Myrmica spatulata
+nylafais,Nylanderia faisonensis
+ponepenn,Ponera pennsylvanica
+prenimpa,Prenolepis imparis
+procsila,Proceratium silaceum
+struclyp,Strumigenys clypeata
+struohio,Strumigenys ohioensis
+pyraorna,Pyramica ornata
+strurost,Strumigenys rostratum
+solemole,Solenopsis molesta
+stenmeri,Stenamma meridionalis
+stenbrev,Stenamma brevicorne
+stendiec,Stenamma diecki
+stenimpa,Stenamma impar
+stenschm,Stenamma schmitti
+stenunkn,Stenamma UNKNOWN
+tapisess,Tapinoma sessile
+temnlong,Temnothorax longispinosus
+temncurv,Temnothorax curvispinosus
+site_name,name of sampling site
+utm_n,"the UTM northing (i.e., y-coordinate) of the centroid of the site in meters"
+utm_e,"the UTM easting (i.e., x-coordinate) of the centroid of the site in meters"
+n,the latitude of the site in decimal degrees
+e,the longitude of the site in decimal degrees
+elevation_m,the elevation of the site in meters
+sample_x,"the UTM easting (i.e., x-coordinate) of the 1m^2 sample (not the site) in meters"
+sample_y,"the UTM northing (i.e., y-coordinate) or the 1m^2 sample (not the site) in meters"
