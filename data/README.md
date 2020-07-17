@@ -6,8 +6,9 @@ The raw data files (NOT MEANT FOR FUTURE ANALYSIS) were provided by Nathan Sande
 
 which contains the community matrix of ant abundances and the site attributes.
 Note that this raw file does have a few small mistakes that are corrected
-in the data processing and cleaning step described below. Therefore, future
-re-analysis of the data should used the cleaned data and not the raw data. 
+in the data processing and cleaning script `./scripts/data_processing.R`.
+Therefore, future re-analysis of the data should used the cleaned data and
+not the raw data. 
 Sanders also provided: 
 
 `./data/smokies_species_list.xlsx`
