@@ -1,11 +1,8 @@
 library(mobr)
 library(vegan)
 library(dplyr)
-library(tidyr)
-library(purrr)
 library(ggplot2)
 library(egg)
-library(pbapply)
 library(broom)
 
 # read in data file
