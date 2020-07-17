@@ -17,17 +17,35 @@ Temperature, but not productivity or geometry, predicts elevational diversity
 gradients in ants across spatial grains. Global Ecology and Biogeography
 16:640–649.
 
-The raw data files were provided by Nathan Sanders: 
+The raw data files (NOT MEANT FOR FUTURE ANALYSIS) were provided by Nathan Sanders: 
 
 `./data/180926-AllRawData.xlsx`
 
 which contains the community matrix of ant abundances and the site attributes.
+Note that this raw file does have a few small mistakes that are corrected
+in the data processing and cleaning step described below. Therefore, future
+re-analysis of the data should used the cleaned data and not the raw data. 
 Sanders also provided: 
 
 `./data/smokies_species_list.xlsx`
 
 which contains the ant species list.
 Ant taxonomy follows Bolton and were updated on Sept 26, 2018
+
+## Reproducing the results of McGlinn et al. 
+
+To run the data processing and data analysis R scripts the following 
+packages must be installed
+
+```r
+install.packages(c('devtools', 'readxl', 'janitor', 
+                   'leaflet', 'mapview', 'tidyr',
+                   'vegan', 'dplyr', 'ggplot2', 
+                   'egg', 'broom'))
+devtools::install_github('mobiodiv/mobr')
+```
+
+### Data processing 
 
 The script to process the raw data files into cleaned data files that can be 
 analyzed and shared via dryad is 
@@ -42,7 +60,7 @@ and the metadata for that file is given in
 
 `./data/dryad/smokies_all_metadata.csv`
 
-## Analysis
+### Data analysis
 
 The script to carry out the analysis published in McGlinn et al. (accepted) is:
 
