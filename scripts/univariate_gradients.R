@@ -108,7 +108,7 @@ deltas$env_var = 'elevation (m)'
 
 plot(deltas, stat = 'b1')
 
-pdf('./figs/deltas_noNODI_b1.pdf')
+pdf('./figs/deltas_b1.pdf')
 plot(deltas, stat = 'b1', scale_by = 'indiv',
      eff_sub_effort = F, eff_log_base = 2,
      eff_disp_pts = F,
@@ -118,7 +118,7 @@ dev.off()
 
 pdf('./figs/deltas_r.pdf')
 plot(deltas, stat = 'r', scale_by = 'indiv',
-     eff_sub_effort = T, eff_log_base = 2.8,
+     eff_sub_effort = T, eff_log_base = 2,
      eff_disp_pts = T,
      eff_disp_smooth = F)
 dev.off()
