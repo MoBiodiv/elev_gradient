@@ -1,21 +1,12 @@
 # Ant elevational biodiversity gradient
 
 This repositiory contains the code to run the case study example analysis from
-the manuscript: 
-
-McGlinn, D.J., T. Engel, S.A. Blowes, N.J. Gotelli, T.M. Knight, B.J. McGill,
-N.J. Sanders, and J.M. Chase. accepted. A multiscale framework for disentangling the
-roles of evenness, density and aggregation on diversity gradients. Ecology.
+the manuscript by McGlinn et al. (2020).
 
 ## Data
 
 The case study is a reanalysis of ant community data collected in the Great
-Smokies National Park with seven additional sites.
-
-Sanders, N.J., J.-P. Lessard, M.C. Fitzpatrick, and R.R. Dunn. 2007.
-Temperature, but not productivity or geometry, predicts elevational diversity
-gradients in ants across spatial grains. Global Ecology and Biogeography
-16:640–649.
+Smokies National Park with seven additional sites (Sanders et al. 2007).
 
 The raw data files (NOT MEANT FOR FUTURE ANALYSIS) were provided by Nathan Sanders: 
 
@@ -32,24 +23,28 @@ Sanders also provided:
 which contains the ant species list.
 Ant taxonomy follows Bolton and were updated on Sept 26, 2018
 
+The cleaned datafiles have been also published on Dryad ([Sanders et al.
+2021](https://doi.org/10.5061/dryad.z8w9ghx7g)):
+
+
 ## Reproducing the results of McGlinn et al. 
 
 To run the data processing and data analysis R scripts the following 
 packages must be installed
 
 ```r
-install.packages(c('devtools', 'readxl', 'janitor', 
+install.packages(c('mobr', 'readxl', 'janitor', 
                    'leaflet', 'mapview', 'tidyr',
                    'vegan', 'dplyr', 'ggplot2', 
                    'egg', 'broom'))
-devtools::install_github('mobiodiv/mobr')
 ```
 
 ### Data processing 
 
-The script to process the raw data files into cleaned data files that can be 
-analyzed and shared via dryad is 
-
+The script to process the raw data files into cleaned data files that were then 
+posted to Dryad ([Sanders et al. 2021](https://doi.org/10.5061/dryad.z8w9ghx7g))
+and analyzed is:
+ 
 `./scripts/data_processing.R`
 
 The cleaned data file is located at 
@@ -65,6 +60,22 @@ and the metadata for that file is given in
 The script to carry out the analysis published in McGlinn et al. (accepted) is:
 
 `./scripts/univariate_gradients.R`
+
+## References
+
+McGlinn, D.J., T. Engel, S.A. Blowes, N.J. Gotelli, T.M. Knight, B.J. McGill,
+N.J. Sanders, and J.M. Chase. 2020. A multiscale framework for disentangling the
+roles of evenness, density and aggregation on diversity gradients. Ecology.
+
+Sanders, N.J., J.-P. Lessard, M.C. Fitzpatrick, and R.R. Dunn. 2007.
+Temperature, but not productivity or geometry, predicts elevational diversity
+gradients in ants across spatial grains. Global Ecology and Biogeography
+16:640–649. https://doi.org/10.1111/j.1466-8238.2007.00316.x
+
+Sanders, N.J., J.-P. Lessard, R.R Dunn. 2021. Great smoky
+mountain ant community composition, v3, Dryad, Dataset,
+https://doi.org/10.5061/dryad.z8w9ghx7g
+
 
 ## Licence 
 
