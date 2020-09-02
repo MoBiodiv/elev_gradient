@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4012570.svg)](https://doi.org/10.5281/zenodo.4012570)
+============
 # Ant elevational biodiversity gradient
 
 This repositiory contains the code to run the case study example analysis from
