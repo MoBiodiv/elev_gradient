@@ -1,8 +1,12 @@
+install.packages(c('devtools', 'mobr', 'leaflet', 'mapview', 'tidyr',
+                   'vegan', 'dplyr', 'ggplot2', 'egg'))
+
 library(mobr)
 library(vegan)
 library(dplyr)
 library(ggplot2)
 library(egg)
+devtools::install_version("broom", version = "0.5.4", repos = "http://cran.us.r-project.org")
 library(broom)
 
 # read in data file

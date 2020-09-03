@@ -35,7 +35,7 @@ To run the data processing and data analysis R scripts the following
 packages must be installed
 
 ```r
-install.packages(c('mobr', 'readxl', 'janitor', 
+install.packages(c('devtools', 'mobr', 'readxl', 'janitor', 
                    'leaflet', 'mapview', 'tidyr',
                    'vegan', 'dplyr', 'ggplot2', 
                    'egg', 'broom'))
