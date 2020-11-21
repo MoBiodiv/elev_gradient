@@ -26,7 +26,7 @@ which contains the ant species list.
 Ant taxonomy follows Bolton and were updated on Sept 26, 2018
 
 The cleaned datafiles have been also published on Dryad ([Sanders et al.
-2021](https://doi.org/10.5061/dryad.z8w9ghx7g)):
+2020](https://doi.org/10.5061/dryad.z8w9ghx7g)):
 
 
 ## Reproducing the results of McGlinn et al. 
@@ -74,7 +74,7 @@ Temperature, but not productivity or geometry, predicts elevational diversity
 gradients in ants across spatial grains. Global Ecology and Biogeography
 16:640–649. https://doi.org/10.1111/j.1466-8238.2007.00316.x
 
-Sanders, N.J., J.-P. Lessard, R.R Dunn. 2021. Great smoky
+Sanders, N.J., J.-P. Lessard, R.R Dunn. 2020. Great smoky
 mountain ant community composition, v3, Dryad, Dataset,
 https://doi.org/10.5061/dryad.z8w9ghx7g
 
